@@ -11,15 +11,11 @@ type Page struct {
 	Body  []byte
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("templates/welcome.html");
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+var templates = template.Must(template.ParseFiles("templates/main.html", "templates/welcome.html"))
 
-	p := &Page{Title: "Welcome"}
-	err = t.Execute(w, p);
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	//var p = &Page{Title: "Welcome"}
+	var err = templates.ExecuteTemplate(w, "main", nil);
 	if (err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
