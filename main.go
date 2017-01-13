@@ -11,10 +11,11 @@ type Page struct {
 	Body  []byte
 }
 
-var templates = template.Must(template.ParseFiles("templates/main.html", "templates/welcome.html"))
+var indexTpl = template.Must(template.ParseFiles("templates/main.html", "templates/welcome.html"))
+var quizTpl = template.Must(template.ParseFiles("templates/main.html", "templates/quiz.html"))
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	err := templates.ExecuteTemplate(w, "main", nil);
+	err := indexTpl.ExecuteTemplate(w, "main", nil);
 	if (err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -22,7 +23,11 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func quizHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("quiz!!!");
+	err := quizTpl.ExecuteTemplate(w, "main", nil)
+	if (err != nil) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func main() {

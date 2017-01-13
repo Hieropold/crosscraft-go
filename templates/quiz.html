@@ -1,0 +1,18 @@
+{{define "content"}}
+
+<div class="jumbotron">
+    <h1>Викторина</h1>
+    <p>Выберите из 5 вариантов верное определение слова</p>
+    <h1><span class="label label-info">{word}</span></h1>
+</div>
+
+<div class="col-md-6">
+    <div class="list-group">
+        {#clues}
+        <a class="list-group-item" href="/quiz/answer/{wid}/{cid}">{clue}</a>
+        {/clues}
+    </div>
+</div>
+
+
+{{end}}
