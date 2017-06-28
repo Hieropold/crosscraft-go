@@ -13,9 +13,15 @@ type Page struct {
 	Body  []byte
 }
 
+type Clue struct {
+	cid int
+	clue string
+}
+
 type Word struct {
 	wid int
 	word string
+	clues[] Clue
 }
 
 var db *sql.DB
@@ -66,9 +72,21 @@ func getRandomOffset() (int, error) {
 
 func getWordByOffset(offset int) (Word, error) {
 	var word Word
+
 	err := db.QueryRow("SELECT wid, word FROM words LIMIT ?, 1", offset).Scan(&word.wid, &word.word)
 	if (err != nil) {
 		return word, err
+	}
+
+	rows, err := db.Query("SELECT cid, clue FROM clues WHERE wid = ?", word.wid)
+	for rows.Next() {
+		var clue Clue
+		err = rows.Scan(&clue.cid, &clue.clue)
+		if err != nil {
+			return word, err
+		}
+
+		fmt.Printf("Clue: %s\n", clue.clue)
 	}
 
 	return word, nil
@@ -77,6 +95,7 @@ func getWordByOffset(offset int) (Word, error) {
 
 func getRandomWord() (Word, error) {
 	var word Word
+
 	offset, err := getRandomOffset()
 	if (err != nil) {
 		return word, err
