@@ -13,6 +13,11 @@ type Page struct {
 	Body  []byte
 }
 
+type Word struct {
+	wid int
+	word string
+}
+
 var db *sql.DB
 
 var indexTpl = template.Must(template.ParseFiles("templates/main.html", "templates/welcome.html"))
@@ -27,13 +32,19 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func quizHandler(w http.ResponseWriter, r *http.Request) {
-	err := quizTpl.ExecuteTemplate(w, "main", nil)
+	var randomWord Word
+	var err error
+	randomWord, err = getRandomWord()
+	if (err != nil) {
+		panic(err.Error())
+	}
+	fmt.Printf("Random word: %s\n", randomWord.word)
+
+	err = quizTpl.ExecuteTemplate(w, "main", nil)
 	if (err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	// Load random 5
 }
 
 func getRandomOffset() (int, error) {
@@ -53,26 +64,27 @@ func getRandomOffset() (int, error) {
 	return offset, nil
 }
 
-func getWordByOffset(offset int) (string, error) {
-	var word string
-	err := db.QueryRow("SELECT word FROM words LIMIT ?, 1", offset).Scan(&word)
+func getWordByOffset(offset int) (Word, error) {
+	var word Word
+	err := db.QueryRow("SELECT wid, word FROM words LIMIT ?, 1", offset).Scan(&word.wid, &word.word)
 	if (err != nil) {
-		return "", err
+		return word, err
 	}
 
 	return word, nil
 
 }
 
-func getRandomWord() (string, error) {
+func getRandomWord() (Word, error) {
+	var word Word
 	offset, err := getRandomOffset()
 	if (err != nil) {
-		return "", err
+		return word, err
 	}
 
-	word, err := getWordByOffset(offset)
+	word, err = getWordByOffset(offset)
 	if (err != nil) {
-		return "", err
+		return word, err
 	}
 
 	return word, nil
@@ -98,13 +110,6 @@ func main() {
 	if (err != nil) {
 		panic(err.Error())
 	}
-
-	var randomWord string
-	randomWord, err = getRandomWord()
-	if (err != nil) {
-		panic(err.Error())
-	}
-	fmt.Printf("Random word: %s\n", randomWord)
 
 	fmt.Println("Crosscraft server is listening on port 8080")
 
