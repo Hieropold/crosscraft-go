@@ -38,12 +38,19 @@ func quizHandler(w http.ResponseWriter, r *http.Request) {
 
 func getRandomOffset() (int, error) {
 	var offset int
-	err := db.QueryRow("SELECT FLOOR(RAND() * COUNT(*)) AS offset FROM words").Scan(&offset)
+
+	stmt, err := db.Prepare("SELECT FLOOR(RAND() * COUNT(*)) AS offset FROM words")
+	if err != nil {
+		panic(err.Error())
+	}
+	defer stmt.Close()
+
+	err = stmt.QueryRow().Scan(&offset)
 	if (err != nil) {
 		return 0, err
 	}
 
-	return 0, nil
+	return offset, nil
 }
 
 func getWordByOffset(offset int) (string, error) {
@@ -80,7 +87,8 @@ func main() {
 	// Static assets
 	http.Handle("/public", http.FileServer(http.Dir("./public/")))
 
-	db, err := sql.Open("mysql", "crosscraft:crosscraft@/crosscraft")
+	var err error
+	db, err = sql.Open("mysql", "crosscraft:crosscraft@/crosscraft")
 	if (err != nil) {
 		panic(err.Error())
 	}
@@ -96,7 +104,7 @@ func main() {
 	if (err != nil) {
 		panic(err.Error())
 	}
-	fmt.Printf("Random word: %s", randomWord)
+	fmt.Printf("Random word: %s\n", randomWord)
 
 	fmt.Println("Crosscraft server is listening on port 8080")
 
