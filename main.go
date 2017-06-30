@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"html/template"
 	"database/sql"
+	"math/rand"
 	_ "github.com/go-sql-driver/mysql"
+	"time"
 )
 
 type Page struct {
@@ -29,6 +31,10 @@ var db *sql.DB
 var indexTpl = template.Must(template.ParseFiles("templates/main.html", "templates/welcome.html"))
 var quizTpl = template.Must(template.ParseFiles("templates/main.html", "templates/quiz.html"))
 
+var totalWords int
+var totalClues int
+var random *rand.Rand
+
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	err := indexTpl.ExecuteTemplate(w, "main", nil);
 	if (err != nil) {
@@ -38,13 +44,20 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func quizHandler(w http.ResponseWriter, r *http.Request) {
-	var randomWord Word
+
 	var err error
+
+	// Load random word
+	var randomWord Word
 	randomWord, err = getRandomWord()
 	if (err != nil) {
 		panic(err.Error())
 	}
 	fmt.Printf("Random word: %s\n", randomWord.word)
+
+	// Select random clue
+	// Load 4 clues of other random words
+	// Shuffle clues
 
 	err = quizTpl.ExecuteTemplate(w, "main", nil)
 	if (err != nil) {
@@ -109,6 +122,18 @@ func getRandomWord() (Word, error) {
 	return word, nil
 }
 
+func initCounts() {
+	err := db.QueryRow("SELECT COUNT(*) AS total FROM words").Scan(&totalWords)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	err = db.QueryRow("SELECT COUNT(*) AS total FROM clues").Scan(&totalClues)
+	if err != nil {
+		panic(err.Error())
+	}
+}
+
 func main() {
 	fmt.Println("Crosscraft server starting")
 
@@ -129,6 +154,13 @@ func main() {
 	if (err != nil) {
 		panic(err.Error())
 	}
+
+	initCounts()
+	fmt.Printf("Total words: %d\n", totalWords)
+	fmt.Printf("Total clues: %d\n", totalClues)
+
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	fmt.Printf("Random: %d\n", random.Intn(totalWords))
 
 	fmt.Println("Crosscraft server is listening on port 8080")
 
