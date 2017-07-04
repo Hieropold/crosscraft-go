@@ -1,9 +1,9 @@
 {{define "content"}}
-
+{{template "header"}}
 <div class="jumbotron">
     <h1>Викторина</h1>
     <p>Выберите из 5 вариантов верное определение слова</p>
-    <h1><span class="label label-info">{word}</span></h1>
+    <h1><span class="label label-info">{{.Word}}</span></h1>
 </div>
 
 <div class="col-md-6">
@@ -13,6 +13,5 @@
         {/clues}
     </div>
 </div>
-
-
+{{template "footer"}}
 {{end}}

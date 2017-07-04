@@ -21,22 +21,22 @@ type Clue struct {
 }
 
 type Word struct {
-	wid int
-	word string
-	clues[] Clue
+	Wid int
+	Word string
+	Clues[] Clue
 }
 
 var db *sql.DB
 
-var indexTpl = template.Must(template.ParseFiles("templates/main.html", "templates/welcome.html"))
-var quizTpl = template.Must(template.ParseFiles("templates/main.html", "templates/quiz.html"))
+var welcomeTpl = template.Must(template.ParseFiles("templates/header.html", "templates/footer.html", "templates/welcome.html"))
+var quizTpl = template.Must(template.ParseFiles("templates/header.html", "templates/footer.html", "templates/quiz.html"))
 
 var totalWords int
 var totalClues int
 var random *rand.Rand
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	err := indexTpl.ExecuteTemplate(w, "main", nil);
+	err := welcomeTpl.ExecuteTemplate(w, "content", nil);
 	if (err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -53,45 +53,32 @@ func quizHandler(w http.ResponseWriter, r *http.Request) {
 	if (err != nil) {
 		panic(err.Error())
 	}
-	fmt.Printf("Random word: %s\n", randomWord.word)
+	fmt.Printf("Random word: %s\n", randomWord.Word)
 
 	// Select random clue
 	// Load 4 clues of other random words
 	// Shuffle clues
 
-	err = quizTpl.ExecuteTemplate(w, "main", nil)
+	err = quizTpl.ExecuteTemplate(w, "content", randomWord)
 	if (err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
-func getRandomOffset() (int, error) {
-	var offset int
-
-	stmt, err := db.Prepare("SELECT FLOOR(RAND() * COUNT(*)) AS offset FROM words")
-	if err != nil {
-		panic(err.Error())
-	}
-	defer stmt.Close()
-
-	err = stmt.QueryRow().Scan(&offset)
-	if (err != nil) {
-		return 0, err
-	}
-
-	return offset, nil
+func getRandomOffset(limit int) (int) {
+	return random.Intn(limit)
 }
 
 func getWordByOffset(offset int) (Word, error) {
 	var word Word
 
-	err := db.QueryRow("SELECT wid, word FROM words LIMIT ?, 1", offset).Scan(&word.wid, &word.word)
+	err := db.QueryRow("SELECT wid, word FROM words LIMIT ?, 1", offset).Scan(&word.Wid, &word.Word)
 	if (err != nil) {
 		return word, err
 	}
 
-	rows, err := db.Query("SELECT cid, clue FROM clues WHERE wid = ?", word.wid)
+	rows, err := db.Query("SELECT cid, clue FROM clues WHERE wid = ?", word.Wid)
 	for rows.Next() {
 		var clue Clue
 		err = rows.Scan(&clue.cid, &clue.clue)
@@ -108,11 +95,9 @@ func getWordByOffset(offset int) (Word, error) {
 
 func getRandomWord() (Word, error) {
 	var word Word
+	var err error
 
-	offset, err := getRandomOffset()
-	if (err != nil) {
-		return word, err
-	}
+	offset := getRandomOffset(totalWords)
 
 	word, err = getWordByOffset(offset)
 	if (err != nil) {
@@ -160,7 +145,7 @@ func main() {
 	fmt.Printf("Total clues: %d\n", totalClues)
 
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
-	fmt.Printf("Random: %d\n", random.Intn(totalWords))
+	fmt.Printf("Random generator is initialized\n");
 
 	fmt.Println("Crosscraft server is listening on port 8080")
 
