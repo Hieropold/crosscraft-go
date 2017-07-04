@@ -16,8 +16,8 @@ type Page struct {
 }
 
 type Clue struct {
-	cid int
-	clue string
+	Cid int
+	Clue string
 }
 
 type Word struct {
@@ -53,11 +53,27 @@ func quizHandler(w http.ResponseWriter, r *http.Request) {
 	if (err != nil) {
 		panic(err.Error())
 	}
-	fmt.Printf("Random word: %s\n", randomWord.Word)
 
-	// Select random clue
-	// Load 4 clues of other random words
+	clues := make([]Clue, 1)
+
+	// Select random correct clue
+	clues[0] = randomWord.Clues[getRandomOffset(len(randomWord.Clues))]
+
+	// Load 4 random clues
+	var randomClues []Clue
+	randomClues, err = getRandomIncorrectClues(randomWord.Wid, 4)
+	clues = append(clues, randomClues...)
+
 	// Shuffle clues
+	shuffled := make([]Clue, len(clues))
+	perm := rand.Perm(len(clues))
+	for i, v := range perm {
+		shuffled[v] = clues[i]
+	}
+
+	for _, c := range shuffled {
+		fmt.Printf("Clue: %s\n", c.Clue)
+	}
 
 	err = quizTpl.ExecuteTemplate(w, "content", randomWord)
 	if (err != nil) {
@@ -81,16 +97,14 @@ func getWordByOffset(offset int) (Word, error) {
 	rows, err := db.Query("SELECT cid, clue FROM clues WHERE wid = ?", word.Wid)
 	for rows.Next() {
 		var clue Clue
-		err = rows.Scan(&clue.cid, &clue.clue)
+		err = rows.Scan(&clue.Cid, &clue.Clue)
 		if err != nil {
 			return word, err
 		}
-
-		fmt.Printf("Clue: %s\n", clue.clue)
+		word.Clues = append(word.Clues, clue)
 	}
 
 	return word, nil
-
 }
 
 func getRandomWord() (Word, error) {
@@ -105,6 +119,22 @@ func getRandomWord() (Word, error) {
 	}
 
 	return word, nil
+}
+
+func getRandomIncorrectClues(wid int, count int) ([]Clue, error) {
+	var offset int
+	randomClues := make([]Clue, count)
+
+	for i := 0; i < count; i++ {
+		offset = getRandomOffset(totalClues - 1)
+		row := db.QueryRow("SELECT cid, clue FROM clues WHERE wid != ? LIMIT ?, 1", wid, offset)
+		err := row.Scan(&randomClues[i].Cid, &randomClues[i].Clue)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return randomClues, nil
 }
 
 func initCounts() {
