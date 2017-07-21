@@ -210,12 +210,13 @@ func initCounts() {
 func main() {
 	fmt.Println("Crosscraft server starting")
 
-	http.HandleFunc("/", indexHandler)
+	//http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/quiz", quizHandler)
 	http.HandleFunc("/quiz/answer", answerHandler)
 
 	// Static assets
-	http.Handle("/public", http.FileServer(http.Dir("./public/")))
+	fs := http.FileServer(http.Dir("./public/"))
+	http.Handle("/public/", http.StripPrefix("/public/", fs))
 
 	var err error
 	db, err = sql.Open("mysql", "crosscraft:crosscraft@/crosscraft")
