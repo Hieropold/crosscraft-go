@@ -75,6 +75,8 @@ func quizHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Clue: %s\n", c.Clue)
 	}
 
+	randomWord.Clues = shuffled
+
 	err = quizTpl.ExecuteTemplate(w, "content", randomWord)
 	if (err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

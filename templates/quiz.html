@@ -8,9 +8,9 @@
 
 <div class="col-md-6">
     <div class="list-group">
-        {#clues}
-        <a class="list-group-item" href="/quiz/answer/{wid}/{cid}">{clue}</a>
-        {/clues}
+        {{ range $index, $clue := .Clues }}
+            <a class="list-group-item" href="/quiz/answer/{{$.Wid}}/{{$clue.Cid}}">{{$clue.Clue}}</a>
+        {{ end }}
     </div>
 </div>
 {{template "footer"}}
