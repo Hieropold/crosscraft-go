@@ -9,7 +9,7 @@
 <div class="col-md-6">
     <div class="list-group">
         {{ range $index, $clue := .Clues }}
-            <a class="list-group-item" href="/quiz/answer/{{$.Wid}}/{{$clue.Cid}}">{{$clue.Clue}}</a>
+            <a class="list-group-item" href="/quiz/answer?wid={{$.Wid}}&cid={{$clue.Cid}}">{{$clue.Clue}}</a>
         {{ end }}
     </div>
 </div>

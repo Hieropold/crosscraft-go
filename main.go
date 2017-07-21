@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	_ "github.com/go-sql-driver/mysql"
 	"time"
+	"strconv"
 )
 
 type Page struct {
@@ -84,8 +85,63 @@ func quizHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func answerHandler(w http.ResponseWriter, r *http.Request) {
+	params := r.URL.Query()
+
+	if (params["wid"] == nil || params["cid"] == nil) {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+
+	fmt.Println("Answer handler")
+
+	var err error
+	var wid int
+	var cid int
+
+	wid, err = strconv.Atoi(params["wid"][0])
+	if (err != nil) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	cid, err = strconv.Atoi(params["cid"][0])
+	if (err != nil) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Printf("wid: %d\n", wid)
+	fmt.Printf("cid: %d\n", cid)
+
+	var isCorrect bool
+	isCorrect, err = isCorrectClue(wid, cid)
+	if (err != nil) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if (isCorrect) {
+		w.Write([]byte("OK!"))
+	} else {
+		w.Write([]byte("Nope..."))
+	}
+}
+
 func getRandomOffset(limit int) (int) {
 	return random.Intn(limit)
+}
+
+func isCorrectClue(wid int, cid int) (bool, error) {
+	var rawExists bool
+	err := db.QueryRow("SELECT 1 FROM clues WHERE wid = ? AND cid = ?", wid, cid).Scan(&rawExists)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func getWordByOffset(offset int) (Word, error) {
@@ -156,6 +212,7 @@ func main() {
 
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/quiz", quizHandler)
+	http.HandleFunc("/quiz/answer", answerHandler)
 
 	// Static assets
 	http.Handle("/public", http.FileServer(http.Dir("./public/")))
