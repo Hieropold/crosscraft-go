@@ -31,6 +31,8 @@ var db *sql.DB
 
 var welcomeTpl = template.Must(template.ParseFiles("templates/header.html", "templates/footer.html", "templates/welcome.html"))
 var quizTpl = template.Must(template.ParseFiles("templates/header.html", "templates/footer.html", "templates/quiz.html"))
+var successTpl = template.Must(template.ParseFiles("templates/header.html", "templates/footer.html", "templates/success.html"))
+var failTpl = template.Must(template.ParseFiles("templates/header.html", "templates/footer.html", "templates/fail.html"))
 
 var totalWords int
 var totalClues int
@@ -93,8 +95,6 @@ func answerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("Answer handler")
-
 	var err error
 	var wid int
 	var cid int
@@ -110,9 +110,6 @@ func answerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("wid: %d\n", wid)
-	fmt.Printf("cid: %d\n", cid)
-
 	var isCorrect bool
 	isCorrect, err = isCorrectClue(wid, cid)
 	if (err != nil) {
@@ -121,9 +118,13 @@ func answerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if (isCorrect) {
-		w.Write([]byte("OK!"))
+		err = successTpl.ExecuteTemplate(w, "content", nil)
 	} else {
-		w.Write([]byte("Nope..."))
+		err = failTpl.ExecuteTemplate(w, "content", nil)
+	}
+	if (err != nil) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -210,7 +211,7 @@ func initCounts() {
 func main() {
 	fmt.Println("Crosscraft server starting")
 
-	//http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/quiz", quizHandler)
 	http.HandleFunc("/quiz/answer", answerHandler)
 
