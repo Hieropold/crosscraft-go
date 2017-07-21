@@ -7,8 +7,10 @@ import (
 	"database/sql"
 	"math/rand"
 	_ "github.com/go-sql-driver/mysql"
+	sessions "github.com/gorilla/sessions"
 	"time"
 	"strconv"
+	"github.com/gorilla/context"
 )
 
 type Page struct {
@@ -38,8 +40,22 @@ var totalWords int
 var totalClues int
 var random *rand.Rand
 
+var sessionStore = sessions.NewCookieStore([]byte("some-secret-asadfewf124r134e"))
+
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	err := welcomeTpl.ExecuteTemplate(w, "content", nil);
+	var err error
+	var session *sessions.Session
+
+	session, err = sessionStore.Get(r, "crosscraft")
+	if (err != nil) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	session.Values["foo"] = "bar"
+	session.Save(r, w)
+
+	err = welcomeTpl.ExecuteTemplate(w, "content", nil);
 	if (err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -240,5 +256,5 @@ func main() {
 
 	fmt.Println("Crosscraft server is listening on port 8080")
 
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":8080", context.ClearHandler(http.DefaultServeMux))
 }
