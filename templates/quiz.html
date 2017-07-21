@@ -6,12 +6,11 @@
     <h1><span class="label label-info">{{.Word}}</span></h1>
 </div>
 
-<div class="col-md-6">
-    <div class="list-group">
-        {{ range $index, $clue := .Clues }}
-            <a class="list-group-item" href="/quiz/answer?wid={{$.Wid}}&cid={{$clue.Cid}}">{{$clue.Clue}}</a>
-        {{ end }}
-    </div>
+<div class="list-group">
+    {{ range $index, $clue := .Clues }}
+        <a class="list-group-item" href="/quiz/answer?wid={{$.Wid}}&cid={{$clue.Cid}}">{{$clue.Clue}}</a>
+    {{ end }}
 </div>
+
 {{template "footer"}}
 {{end}}
