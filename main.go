@@ -42,20 +42,48 @@ var random *rand.Rand
 
 var sessionStore = sessions.NewCookieStore([]byte("some-secret-asadfewf124r134e"))
 
+func isVerified(r *http.Request) (bool, error) {
+	session, err := sessionStore.Get(r, "crosscraft")
+	if err != nil {
+		return false, err
+	}
+
+	if session.Values["verified"] != nil && session.Values["verified"] != false {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func checkAccess(w http.ResponseWriter, r *http.Request) (bool, error) {
+	isVerified, err := isVerified(r)
+	if err != nil {
+		return false, err
+	}
+	if isVerified {
+		return true, nil
+	}
+
+
+	return false, nil
+}
+
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
-	var session *sessions.Session
+	var verified bool
 
-	session, err = sessionStore.Get(r, "crosscraft")
-	if (err != nil) {
+	verified, err = isVerified(r)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	session.Values["foo"] = "bar"
-	session.Save(r, w)
-
-	err = welcomeTpl.ExecuteTemplate(w, "content", nil);
+	type WelcomeData struct {
+		IsVerified bool
+	}
+	var data WelcomeData
+	data.IsVerified = verified
+	err = welcomeTpl.ExecuteTemplate(w, "content", data);
 	if (err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -66,11 +94,18 @@ func quizHandler(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 
+	granted, _ := checkAccess(w, r)
+	if (!granted) {
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
 	// Load random word
 	var randomWord Word
 	randomWord, err = getRandomWord()
 	if (err != nil) {
-		panic(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	clues := make([]Clue, 1)
@@ -104,6 +139,13 @@ func quizHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func answerHandler(w http.ResponseWriter, r *http.Request) {
+
+	granted, _ := checkAccess(w, r)
+	if (!granted) {
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
 	params := r.URL.Query()
 
 	if (params["wid"] == nil || params["cid"] == nil) {
