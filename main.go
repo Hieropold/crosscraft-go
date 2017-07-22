@@ -80,14 +80,32 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 	type WelcomeData struct {
 		IsVerified bool
+		RecaptchaKey string
 	}
 	var data WelcomeData
 	data.IsVerified = verified
+	data.RecaptchaKey = "6LdB0AwTAAAAAPXB_1jhA0u4fuyC2Tnu0vuP2-9p"
 	err = welcomeTpl.ExecuteTemplate(w, "content", data);
 	if (err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func verifyHumanHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("verify human\n"))
+
+	if r.Method != "POST" {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+
+	r.ParseForm()
+
+	token := r.Form["g-recaptcha-response"][0]
+
+	fmt.Printf("Recaptcha: %s", token)
+	w.Write([]byte(token))
 }
 
 func quizHandler(w http.ResponseWriter, r *http.Request) {
@@ -270,6 +288,7 @@ func main() {
 	fmt.Println("Crosscraft server starting")
 
 	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/verify-human", verifyHumanHandler)
 	http.HandleFunc("/quiz", quizHandler)
 	http.HandleFunc("/quiz/answer", answerHandler)
 

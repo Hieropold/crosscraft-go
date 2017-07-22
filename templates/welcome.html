@@ -2,15 +2,13 @@
 {{template "header"}}
 <div class="title">Crosscraft</div>
 
-<!--<form action="/verify-human" method="post">-->
-  <!--<div class="g-recaptcha" data-sitekey="{recaptchaForm.recatpchaSiteKey}"></div>-->
-  <!--<input type="submit" value="Играть" class="btn btn-lg btn-primary">-->
-<!--</form>-->
-
 {{if .IsVerified}}
   <a href="/quiz" class="btn btn-lg btn-primary">Играть</a>
 {{- else}}
-  Not verified!
+  <form action="/verify-human" method="post">
+    <div class="g-recaptcha" data-sitekey="{{.RecaptchaKey}}"></div>
+    <input type="submit" value="Играть" class="btn btn-lg btn-primary">
+  </form>
 {{- end}}
 {{template "footer"}}
 {{end}}
