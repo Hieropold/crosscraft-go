@@ -11,6 +11,8 @@ import (
 	"time"
 	"strconv"
 	"github.com/gorilla/context"
+	"recaptcha"
+	"os"
 )
 
 type Page struct {
@@ -84,7 +86,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var data WelcomeData
 	data.IsVerified = verified
-	data.RecaptchaKey = "6LdB0AwTAAAAAPXB_1jhA0u4fuyC2Tnu0vuP2-9p"
+	data.RecaptchaKey = recaptcha.Key
 	err = welcomeTpl.ExecuteTemplate(w, "content", data);
 	if (err != nil) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -93,8 +95,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func verifyHumanHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("verify human\n"))
-
 	if r.Method != "POST" {
 		http.Error(w, "Not found", http.StatusNotFound)
 		return
@@ -104,8 +104,26 @@ func verifyHumanHandler(w http.ResponseWriter, r *http.Request) {
 
 	token := r.Form["g-recaptcha-response"][0]
 
-	fmt.Printf("Recaptcha: %s", token)
-	w.Write([]byte(token))
+	success, err := recaptcha.Verify(token)
+	if (err != nil) {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if (success) {
+		session, err := sessionStore.Get(r, "crosscraft")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		session.Values["verified"] = true
+		sessionStore.Save(r, w, session)
+		http.Redirect(w, r, "/quiz", http.StatusTemporaryRedirect)
+		return
+	} else {
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+	}
 }
 
 func quizHandler(w http.ResponseWriter, r *http.Request) {
@@ -286,6 +304,19 @@ func initCounts() {
 
 func main() {
 	fmt.Println("Crosscraft server starting")
+
+	recaptcha.Key = os.Getenv("CROSSCRAFT_RECAPTCHA_KEY")
+	if (recaptcha.Key == "") {
+		fmt.Printf("Missing reCaptcha token\n")
+		return
+	}
+	recaptcha.Secret = os.Getenv("CROSSCRAFT_RECAPTCHA_SECRET")
+	if (recaptcha.Secret == "") {
+		fmt.Printf("Missing reCaptcha secret\n")
+		return
+	}
+	fmt.Printf("reCaptcha token: %s\n", recaptcha.Key)
+	fmt.Printf("reCaptcha secret: %s\n", recaptcha.Secret)
 
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/verify-human", verifyHumanHandler)
