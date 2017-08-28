@@ -222,6 +222,18 @@ func answerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func healthcheckHandler(w http.ResponseWriter, r *http.Request) {
+	// Check DB connection
+	err := db.Ping()
+	if (err != nil) {
+		fmt.Printf("Healthcheck error: %s", err.Error())
+		http.Error(w, "Internal error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Write([]byte("I'm OK"))
+}
+
 func getRandomOffset(limit int) (int) {
 	return random.Intn(limit)
 }
@@ -322,6 +334,7 @@ func main() {
 	http.HandleFunc("/verify-human", verifyHumanHandler)
 	http.HandleFunc("/quiz", quizHandler)
 	http.HandleFunc("/quiz/answer", answerHandler)
+	http.HandleFunc("/healthcheck", healthcheckHandler)
 
 	// Static assets
 	fs := http.FileServer(http.Dir("./public/"))
