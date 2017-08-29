@@ -70,6 +70,15 @@ func checkAccess(w http.ResponseWriter, r *http.Request) (bool, error) {
 	return false, nil
 }
 
+func logWrapper(h func (http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func (w http.ResponseWriter, r *http.Request) {
+		startTime := time.Now()
+		h(w, r)
+		duration := time.Now().Sub(startTime)
+		fmt.Printf("Request %s: %d ns\n", r.URL, duration)
+	}
+}
+
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var verified bool
@@ -330,11 +339,11 @@ func main() {
 	fmt.Printf("reCaptcha token: %s\n", recaptcha.Key)
 	fmt.Printf("reCaptcha secret: %s\n", recaptcha.Secret)
 
-	http.HandleFunc("/", indexHandler)
-	http.HandleFunc("/verify-human", verifyHumanHandler)
-	http.HandleFunc("/quiz", quizHandler)
-	http.HandleFunc("/quiz/answer", answerHandler)
-	http.HandleFunc("/healthcheck", healthcheckHandler)
+	http.HandleFunc("/", logWrapper(indexHandler))
+	http.HandleFunc("/verify-human", logWrapper(verifyHumanHandler))
+	http.HandleFunc("/quiz", logWrapper(quizHandler))
+	http.HandleFunc("/quiz/answer", logWrapper(answerHandler))
+	http.HandleFunc("/healthcheck", logWrapper(healthcheckHandler))
 
 	// Static assets
 	fs := http.FileServer(http.Dir("./public/"))
