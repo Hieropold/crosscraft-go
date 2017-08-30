@@ -1,18 +1,18 @@
 package recaptcha
 
 import (
-	"time"
-	"net/url"
-	"net/http"
-	"io/ioutil"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"time"
 )
 
 type verificationResponse struct {
-	Success bool `json:"success"`
-	ChallengeTs string `json:"challenge_ts"`
-	Hostname string `json:"hostname"`
-	ErrorCodes []string `json:"error-codes"`
+	Success     bool     `json:"success"`
+	ChallengeTs string   `json:"challenge_ts"`
+	Hostname    string   `json:"hostname"`
+	ErrorCodes  []string `json:"error-codes"`
 }
 
 var Key string
@@ -21,22 +21,22 @@ var Secret string
 func Verify(token string) (bool, error) {
 	client := &http.Client{Timeout: 5 * time.Second}
 	response, err := client.PostForm("https://www.google.com/recaptcha/api/siteverify", url.Values{
-		"secret": {Secret},
+		"secret":   {Secret},
 		"response": {token},
 	})
 	defer response.Body.Close()
-	if (err != nil) {
+	if err != nil {
 		return false, err
 	}
 
 	body, err := ioutil.ReadAll(response.Body)
-	if (err != nil) {
+	if err != nil {
 		return false, err
 	}
 
 	result := new(verificationResponse)
 	err = json.Unmarshal(body, result)
-	if (err != nil) {
+	if err != nil {
 		return false, err
 	}
 
