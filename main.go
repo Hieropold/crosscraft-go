@@ -353,6 +353,7 @@ func main() {
 	dbCfg.User = os.Getenv("CROSSCRAFT_DB_USER")
 	dbCfg.Password = os.Getenv("CROSSCRAFT_DB_PASSWORD")
 	dbCfg.DBName = os.Getenv("CROSSCRAFT_DB_NAME")
+	fmt.Printf("DB connection string: %s\n", dbCfg.ConnString())
 
 	http.HandleFunc("/", logWrapper(indexHandler))
 	http.HandleFunc("/verify-human", logWrapper(verifyHumanHandler))
