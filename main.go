@@ -31,6 +31,17 @@ type Word struct {
 	Clues[] Clue
 }
 
+type DBConfig struct {
+	User string
+	Password string
+	DBName string
+	Host string
+}
+
+func (c DBConfig) ConnString() string {
+	return c.User + ":" + c.Password + "@tcp(" + c.Host + ")/" + c.DBName
+}
+
 var db *sql.DB
 
 var welcomeTpl = template.Must(template.ParseFiles("templates/header.html", "templates/footer.html", "templates/welcome.html"))
@@ -339,6 +350,11 @@ func main() {
 	fmt.Printf("reCaptcha token: %s\n", recaptcha.Key)
 	fmt.Printf("reCaptcha secret: %s\n", recaptcha.Secret)
 
+	var dbCfg DBConfig
+	dbCfg.User = os.Getenv("CROSSCRAFT_DB_USER")
+	dbCfg.Password = os.Getenv("CROSSCRAFT_DB_PASSWORD")
+	dbCfg.DBName = os.Getenv("CROSSCRAFT_DB_NAME")
+
 	http.HandleFunc("/", logWrapper(indexHandler))
 	http.HandleFunc("/verify-human", logWrapper(verifyHumanHandler))
 	http.HandleFunc("/quiz", logWrapper(quizHandler))
@@ -350,7 +366,7 @@ func main() {
 	http.Handle("/public/", http.StripPrefix("/public/", fs))
 
 	var err error
-	db, err = sql.Open("mysql", "crosscraft:crosscraft@/crosscraft")
+	db, err = sql.Open("mysql", dbCfg.ConnString())
 	if (err != nil) {
 		panic(err.Error())
 	}
