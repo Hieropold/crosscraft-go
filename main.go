@@ -38,7 +38,11 @@ type DBConfig struct {
 	Host     string
 }
 
-func (c DBConfig) ConnString() string {
+func (c DBConfig) ConnString(maskPass bool) string {
+	if maskPass {
+		return c.User + ":<pass>@tcp(" + c.Host + ")/" + c.DBName
+	}
+
 	return c.User + ":" + c.Password + "@tcp(" + c.Host + ")/" + c.DBName
 }
 
@@ -353,7 +357,7 @@ func main() {
 	dbCfg.User = os.Getenv("CROSSCRAFT_DB_USER")
 	dbCfg.Password = os.Getenv("CROSSCRAFT_DB_PASSWORD")
 	dbCfg.DBName = os.Getenv("CROSSCRAFT_DB_NAME")
-	fmt.Printf("DB connection string: %s\n", dbCfg.ConnString())
+	fmt.Printf("DB connection string: %s\n", dbCfg.ConnString(true))
 
 	http.HandleFunc("/", logWrapper(indexHandler))
 	http.HandleFunc("/verify-human", logWrapper(verifyHumanHandler))
@@ -366,7 +370,7 @@ func main() {
 	http.Handle("/public/", http.StripPrefix("/public/", fs))
 
 	var err error
-	db, err = sql.Open("mysql", dbCfg.ConnString())
+	db, err = sql.Open("mysql", dbCfg.ConnString(false))
 	if err != nil {
 		panic(err.Error())
 	}
