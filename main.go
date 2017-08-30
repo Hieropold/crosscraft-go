@@ -184,10 +184,6 @@ func quizHandler(w http.ResponseWriter, r *http.Request) {
 		shuffled[v] = clues[i]
 	}
 
-	for _, c := range shuffled {
-		fmt.Printf("Clue: %s\n", c.Clue)
-	}
-
 	randomWord.Clues = shuffled
 
 	err = quizTpl.ExecuteTemplate(w, "content", randomWord)
