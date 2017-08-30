@@ -10,6 +10,7 @@ Service is configured using environemnt vars:
 * CROSSCRAFT_DB_USER - database user name
 * CROSSCRAFT_DB_PASSWORD - database password
 * CROSSCRAFT_DB_NAME - database name
+* CROSSCRAFT_DB_HOST - database hostname
 
 # TODOs
 
