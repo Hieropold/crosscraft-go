@@ -1,18 +1,18 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
-	"html/template"
 	"database/sql"
-	"math/rand"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
-	sessions "github.com/gorilla/sessions"
-	"time"
-	"strconv"
 	"github.com/gorilla/context"
-	"recaptcha"
+	sessions "github.com/gorilla/sessions"
+	"html/template"
+	"math/rand"
+	"net/http"
 	"os"
+	"recaptcha"
+	"strconv"
+	"time"
 )
 
 type Page struct {
@@ -21,21 +21,21 @@ type Page struct {
 }
 
 type Clue struct {
-	Cid int
+	Cid  int
 	Clue string
 }
 
 type Word struct {
-	Wid int
-	Word string
-	Clues[] Clue
+	Wid   int
+	Word  string
+	Clues []Clue
 }
 
 type DBConfig struct {
-	User string
+	User     string
 	Password string
-	DBName string
-	Host string
+	DBName   string
+	Host     string
 }
 
 func (c DBConfig) ConnString() string {
@@ -77,12 +77,11 @@ func checkAccess(w http.ResponseWriter, r *http.Request) (bool, error) {
 		return true, nil
 	}
 
-
 	return false, nil
 }
 
-func logWrapper(h func (http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
-	return func (w http.ResponseWriter, r *http.Request) {
+func logWrapper(h func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
 		h(w, r)
 		duration := time.Now().Sub(startTime)
@@ -101,14 +100,14 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type WelcomeData struct {
-		IsVerified bool
+		IsVerified   bool
 		RecaptchaKey string
 	}
 	var data WelcomeData
 	data.IsVerified = verified
 	data.RecaptchaKey = recaptcha.Key
-	err = welcomeTpl.ExecuteTemplate(w, "content", data);
-	if (err != nil) {
+	err = welcomeTpl.ExecuteTemplate(w, "content", data)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -125,12 +124,12 @@ func verifyHumanHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.Form["g-recaptcha-response"][0]
 
 	success, err := recaptcha.Verify(token)
-	if (err != nil) {
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if (success) {
+	if success {
 		session, err := sessionStore.Get(r, "crosscraft")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -151,7 +150,7 @@ func quizHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	granted, _ := checkAccess(w, r)
-	if (!granted) {
+	if !granted {
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
@@ -159,7 +158,7 @@ func quizHandler(w http.ResponseWriter, r *http.Request) {
 	// Load random word
 	var randomWord Word
 	randomWord, err = getRandomWord()
-	if (err != nil) {
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -188,7 +187,7 @@ func quizHandler(w http.ResponseWriter, r *http.Request) {
 	randomWord.Clues = shuffled
 
 	err = quizTpl.ExecuteTemplate(w, "content", randomWord)
-	if (err != nil) {
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -197,14 +196,14 @@ func quizHandler(w http.ResponseWriter, r *http.Request) {
 func answerHandler(w http.ResponseWriter, r *http.Request) {
 
 	granted, _ := checkAccess(w, r)
-	if (!granted) {
+	if !granted {
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
 	params := r.URL.Query()
 
-	if (params["wid"] == nil || params["cid"] == nil) {
+	if params["wid"] == nil || params["cid"] == nil {
 		http.Error(w, "Not found", http.StatusNotFound)
 		return
 	}
@@ -214,29 +213,29 @@ func answerHandler(w http.ResponseWriter, r *http.Request) {
 	var cid int
 
 	wid, err = strconv.Atoi(params["wid"][0])
-	if (err != nil) {
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	cid, err = strconv.Atoi(params["cid"][0])
-	if (err != nil) {
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	var isCorrect bool
 	isCorrect, err = isCorrectClue(wid, cid)
-	if (err != nil) {
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if (isCorrect) {
+	if isCorrect {
 		err = successTpl.ExecuteTemplate(w, "content", nil)
 	} else {
 		err = failTpl.ExecuteTemplate(w, "content", nil)
 	}
-	if (err != nil) {
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -245,7 +244,7 @@ func answerHandler(w http.ResponseWriter, r *http.Request) {
 func healthcheckHandler(w http.ResponseWriter, r *http.Request) {
 	// Check DB connection
 	err := db.Ping()
-	if (err != nil) {
+	if err != nil {
 		fmt.Printf("Healthcheck error: %s", err.Error())
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 		return
@@ -254,7 +253,7 @@ func healthcheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("I'm OK"))
 }
 
-func getRandomOffset(limit int) (int) {
+func getRandomOffset(limit int) int {
 	return random.Intn(limit)
 }
 
@@ -275,7 +274,7 @@ func getWordByOffset(offset int) (Word, error) {
 	var word Word
 
 	err := db.QueryRow("SELECT wid, word FROM words LIMIT ?, 1", offset).Scan(&word.Wid, &word.Word)
-	if (err != nil) {
+	if err != nil {
 		return word, err
 	}
 
@@ -299,7 +298,7 @@ func getRandomWord() (Word, error) {
 	offset := getRandomOffset(totalWords)
 
 	word, err = getWordByOffset(offset)
-	if (err != nil) {
+	if err != nil {
 		return word, err
 	}
 
@@ -338,12 +337,12 @@ func main() {
 	fmt.Println("Crosscraft server starting")
 
 	recaptcha.Key = os.Getenv("CROSSCRAFT_RECAPTCHA_KEY")
-	if (recaptcha.Key == "") {
+	if recaptcha.Key == "" {
 		fmt.Printf("Missing reCaptcha token\n")
 		return
 	}
 	recaptcha.Secret = os.Getenv("CROSSCRAFT_RECAPTCHA_SECRET")
-	if (recaptcha.Secret == "") {
+	if recaptcha.Secret == "" {
 		fmt.Printf("Missing reCaptcha secret\n")
 		return
 	}
@@ -367,13 +366,13 @@ func main() {
 
 	var err error
 	db, err = sql.Open("mysql", dbCfg.ConnString())
-	if (err != nil) {
+	if err != nil {
 		panic(err.Error())
 	}
-	defer db.Close();
+	defer db.Close()
 
 	err = db.Ping()
-	if (err != nil) {
+	if err != nil {
 		panic(err.Error())
 	}
 
@@ -382,7 +381,7 @@ func main() {
 	fmt.Printf("Total clues: %d\n", totalClues)
 
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
-	fmt.Printf("Random generator is initialized\n");
+	fmt.Printf("Random generator is initialized\n")
 
 	fmt.Println("Crosscraft server is listening on port 8080")
 
