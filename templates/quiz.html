@@ -3,12 +3,13 @@
 <div class="jumbotron">
     <h1>Викторина</h1>
     <p>Выберите из 5 вариантов верное определение слова</p>
-    <h1><span class="label label-info">{{.Word}}</span></h1>
+    <h1><span class="label label-info">{{.Word.Word}}</span></h1>
+    <p>Отгадано слов: {{.Score}}, рекорд: {{.MaxScore}}</p>
 </div>
 
 <div class="list-group">
-    {{ range $index, $clue := .Clues }}
-        <a class="list-group-item" href="/quiz/answer?wid={{$.Wid}}&cid={{$clue.Cid}}">{{$clue.Clue}}</a>
+    {{ range $index, $clue := .Word.Clues }}
+        <a class="list-group-item" href="/quiz/answer?wid={{$.Word.Wid}}&cid={{$clue.Cid}}">{{$clue.Clue}}</a>
     {{ end }}
 </div>
 

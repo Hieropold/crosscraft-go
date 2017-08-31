@@ -15,11 +15,6 @@ import (
 	"time"
 )
 
-type Page struct {
-	Title string
-	Body  []byte
-}
-
 type Clue struct {
 	Cid  int
 	Clue string
@@ -29,6 +24,12 @@ type Word struct {
 	Wid   int
 	Word  string
 	Clues []Clue
+}
+
+type QuizPage struct {
+	Word     Word
+	Score    int
+	MaxScore int
 }
 
 type DBConfig struct {
@@ -70,6 +71,69 @@ func isVerified(r *http.Request) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func getScore(w http.ResponseWriter, r *http.Request) (int, int, error) {
+	session, err := sessionStore.Get(r, "crosscraft")
+	if err != nil {
+		return 0, 0, err
+	}
+
+	if session.Values["score"] == nil {
+		session.Values["score"] = 0
+	}
+
+	if session.Values["max"] == nil {
+		session.Values["max"] = 0
+	}
+
+	sessionStore.Save(r, w, session)
+
+	return session.Values["score"].(int), session.Values["max"].(int), nil
+}
+
+func increaseScore(w http.ResponseWriter, r *http.Request) (bool, error) {
+	session, err := sessionStore.Get(r, "crosscraft")
+	if err != nil {
+		return false, err
+	}
+
+	var score int
+	var max int
+
+	if session.Values["score"] == nil {
+		score = 0
+	} else {
+		score = session.Values["score"].(int)
+	}
+
+	if session.Values["max"] == nil {
+		max = 0
+	} else {
+		max = session.Values["max"].(int)
+	}
+
+	score = score + 1
+	if max < score {
+		max = score
+	}
+
+	session.Values["score"] = score
+	session.Values["max"] = max
+
+	sessionStore.Save(r, w, session)
+	return true, nil
+}
+
+func resetScore(w http.ResponseWriter, r *http.Request) (bool, error) {
+	session, err := sessionStore.Get(r, "crosscraft")
+	if err != nil {
+		return false, err
+	}
+
+	session.Values["score"] = 0
+	sessionStore.Save(r, w, session)
+	return true, nil
 }
 
 func checkAccess(w http.ResponseWriter, r *http.Request) (bool, error) {
@@ -159,6 +223,9 @@ func quizHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Load current user score
+	score, max, err := getScore(w, r)
+
 	// Load random word
 	var randomWord Word
 	randomWord, err = getRandomWord()
@@ -186,7 +253,13 @@ func quizHandler(w http.ResponseWriter, r *http.Request) {
 
 	randomWord.Clues = shuffled
 
-	err = quizTpl.ExecuteTemplate(w, "content", randomWord)
+	var quizPage QuizPage = QuizPage{
+		Word:     randomWord,
+		Score:    score,
+		MaxScore: max,
+	}
+
+	err = quizTpl.ExecuteTemplate(w, "content", quizPage)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -231,8 +304,10 @@ func answerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isCorrect {
+		increaseScore(w, r)
 		err = successTpl.ExecuteTemplate(w, "content", nil)
 	} else {
+		resetScore(w, r)
 		err = failTpl.ExecuteTemplate(w, "content", nil)
 	}
 	if err != nil {
