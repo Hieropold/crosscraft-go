@@ -5,12 +5,12 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/context"
-	sessions "github.com/gorilla/sessions"
 	"html/template"
 	"math/rand"
 	"net/http"
 	"os"
 	"recaptcha"
+	"session"
 	"strconv"
 	"time"
 )
@@ -58,94 +58,8 @@ var totalWords int
 var totalClues int
 var random *rand.Rand
 
-var sessionStore = sessions.NewCookieStore([]byte("some-secret-asadfewf124r134e"))
-
-func isVerified(r *http.Request) (bool, error) {
-	session, err := sessionStore.Get(r, "crosscraft")
-	if err != nil {
-		return false, err
-	}
-
-	if session.Values["verified"] != nil && session.Values["verified"] != false {
-		return true, nil
-	}
-
-	return false, nil
-}
-
-func getScore(w http.ResponseWriter, r *http.Request) (int, int, error) {
-	session, err := sessionStore.Get(r, "crosscraft")
-	if err != nil {
-		return 0, 0, err
-	}
-
-	if session.Values["score"] == nil {
-		session.Values["score"] = 0
-	}
-
-	if session.Values["max"] == nil {
-		session.Values["max"] = 0
-	}
-
-	sessionStore.Save(r, w, session)
-
-	return session.Values["score"].(int), session.Values["max"].(int), nil
-}
-
-func increaseScore(w http.ResponseWriter, r *http.Request) (bool, error) {
-	session, err := sessionStore.Get(r, "crosscraft")
-	if err != nil {
-		return false, err
-	}
-
-	var score int
-	var max int
-
-	if session.Values["score"] == nil {
-		score = 0
-	} else {
-		score = session.Values["score"].(int)
-	}
-
-	if session.Values["max"] == nil {
-		max = 0
-	} else {
-		max = session.Values["max"].(int)
-	}
-
-	score = score + 1
-	if max < score {
-		max = score
-	}
-
-	session.Values["score"] = score
-	session.Values["max"] = max
-
-	sessionStore.Save(r, w, session)
-	return true, nil
-}
-
-func resetScore(w http.ResponseWriter, r *http.Request) (bool, error) {
-	session, err := sessionStore.Get(r, "crosscraft")
-	if err != nil {
-		return false, err
-	}
-
-	session.Values["score"] = 0
-	sessionStore.Save(r, w, session)
-	return true, nil
-}
-
-func checkAccess(w http.ResponseWriter, r *http.Request) (bool, error) {
-	isVerified, err := isVerified(r)
-	if err != nil {
-		return false, err
-	}
-	if isVerified {
-		return true, nil
-	}
-
-	return false, nil
+func checkAccess(s session.Session) (bool) {
+	return s.IsVerified()
 }
 
 func logWrapper(h func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
@@ -157,22 +71,27 @@ func logWrapper(h func(http.ResponseWriter, *http.Request)) func(http.ResponseWr
 	}
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	var err error
-	var verified bool
+func sessionLoader(h func(http.ResponseWriter, *http.Request, session.Session)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s, err := session.Start(w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-	verified, err = isVerified(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		h(w, r, s)
 	}
+}
+
+func indexHandler(w http.ResponseWriter, r *http.Request, s session.Session) {
+	var err error
 
 	type WelcomeData struct {
 		IsVerified   bool
 		RecaptchaKey string
 	}
 	var data WelcomeData
-	data.IsVerified = verified
+	data.IsVerified = s.IsVerified()
 	data.RecaptchaKey = recaptcha.Key
 	err = welcomeTpl.ExecuteTemplate(w, "content", data)
 	if err != nil {
@@ -181,7 +100,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func verifyHumanHandler(w http.ResponseWriter, r *http.Request) {
+func verifyHumanHandler(w http.ResponseWriter, r *http.Request, s session.Session) {
 	if r.Method != "POST" {
 		http.Error(w, "Not found", http.StatusNotFound)
 		return
@@ -198,13 +117,8 @@ func verifyHumanHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if success {
-		session, err := sessionStore.Get(r, "crosscraft")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		session.Values["verified"] = true
-		sessionStore.Save(r, w, session)
+		s.SetVerified()
+		s.Save(w, r)
 		http.Redirect(w, r, "/quiz", http.StatusTemporaryRedirect)
 		return
 	} else {
@@ -213,18 +127,18 @@ func verifyHumanHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func quizHandler(w http.ResponseWriter, r *http.Request) {
+func quizHandler(w http.ResponseWriter, r *http.Request, s session.Session) {
 
 	var err error
 
-	granted, _ := checkAccess(w, r)
+	granted := checkAccess(s)
 	if !granted {
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
 	// Load current user score
-	score, max, err := getScore(w, r)
+	score, max := s.GetScore()
 
 	// Load random word
 	var randomWord Word
@@ -266,9 +180,8 @@ func quizHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func answerHandler(w http.ResponseWriter, r *http.Request) {
-
-	granted, _ := checkAccess(w, r)
+func answerHandler(w http.ResponseWriter, r *http.Request, s session.Session) {
+	granted := checkAccess(s)
 	if !granted {
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
@@ -304,10 +217,12 @@ func answerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isCorrect {
-		increaseScore(w, r)
+		s.IncreaseScore()
+		s.Save(w, r)
 		err = successTpl.ExecuteTemplate(w, "content", nil)
 	} else {
-		resetScore(w, r)
+		s.ResetScore()
+		s.Save(w, r)
 		err = failTpl.ExecuteTemplate(w, "content", nil)
 	}
 	if err != nil {
@@ -431,10 +346,10 @@ func main() {
 	dbCfg.Host = os.Getenv("CROSSCRAFT_DB_HOST")
 	fmt.Printf("DB connection string: %s\n", dbCfg.ConnString(true))
 
-	http.HandleFunc("/", logWrapper(indexHandler))
-	http.HandleFunc("/verify-human", logWrapper(verifyHumanHandler))
-	http.HandleFunc("/quiz", logWrapper(quizHandler))
-	http.HandleFunc("/quiz/answer", logWrapper(answerHandler))
+	http.HandleFunc("/", logWrapper(sessionLoader(indexHandler)))
+	http.HandleFunc("/verify-human", logWrapper(sessionLoader(verifyHumanHandler)))
+	http.HandleFunc("/quiz", logWrapper(sessionLoader(quizHandler)))
+	http.HandleFunc("/quiz/answer", logWrapper(sessionLoader(answerHandler)))
 	http.HandleFunc("/healthcheck", logWrapper(healthcheckHandler))
 
 	// Static assets
@@ -459,6 +374,9 @@ func main() {
 
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	fmt.Printf("Random generator is initialized\n")
+
+	session.Init()
+	fmt.Println("Sessions initialized")
 
 	fmt.Println("Crosscraft server is listening on port 8080")
 
