@@ -1,17 +1,21 @@
 {{define "content"}}
 {{template "header"}}
+<div class="panel panel-default">
+    <div class="panel-body">
+        <h2>Статистика</h2>
+        <p>Правильных ответов подряд: {{.Score}}, рекорд: {{.MaxScore}}</p>
+        <p>Уровень: <strong>{{.Lvl}}</strong></p>
+        <div class="progress">
+            <div class="progress-bar" role="progressbar" aria-valuenow="{{.Progress}}" aria-valuemin="0" aria-valuemax="100" style="width: {{.Progress}}%;">
+                {{.Progress}}%
+            </div>
+        </div>
+    </div>
+</div>
 <div class="jumbotron">
     <h1>Викторина</h1>
     <p>Выберите из 5 вариантов верное определение слова</p>
     <h1><span class="label label-info">{{.Word.Word}}</span></h1>
-    <p>Отгадано слов: {{.Score}}, рекорд: {{.MaxScore}}</p>
-    <p>Экспа: {{.Exp}} / {{.NextCap}}</p>
-    <p>Уровень: {{.Lvl}}</p>
-    <div class="progress">
-        <div class="progress-bar" role="progressbar" aria-valuenow="{{.Progress}}" aria-valuemin="0" aria-valuemax="100" style="width: {{.Progress}}%;">
-            {{.Progress}}%
-        </div>
-    </div>
 </div>
 
 <div class="list-group">
