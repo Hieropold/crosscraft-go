@@ -25,6 +25,10 @@ type QuizPage struct {
 	Progress int
 }
 
+type SuccessPage struct {
+	Score int
+}
+
 type DBConfig struct {
 	User     string
 	Password string
@@ -191,7 +195,11 @@ func answerHandler(w http.ResponseWriter, r *http.Request, s session.Session) {
 	if isCorrect {
 		s.IncreaseScore()
 		s.Save(w, r)
-		err = successTpl.ExecuteTemplate(w, "content", nil)
+		score, _, _, _ := s.GetScore()
+		var successPage SuccessPage = SuccessPage{
+			Score: score,
+		}
+		err = successTpl.ExecuteTemplate(w, "content", successPage)
 	} else {
 		s.ResetScore()
 		s.Save(w, r)
