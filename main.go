@@ -22,6 +22,7 @@ type QuizPage struct {
 	Exp int
 	Lvl int
 	NextCap int
+	Progress int
 }
 
 type DBConfig struct {
@@ -130,13 +131,18 @@ func quizHandler(w http.ResponseWriter, r *http.Request, s session.Session) {
 		return
 	}
 
+	next := s.GetNextLevelCap()
+	prev := s.GetPreviousLevelCap()
+	progress := (float64(exp - prev) / float64(next - prev)) * 100
+
 	var quizPage QuizPage = QuizPage{
 		Word:     randomWord,
 		Score:    score,
 		MaxScore: max,
 		Exp: exp,
 		Lvl: lvl,
-		NextCap: s.GetNextLevelCap(),
+		NextCap: next,
+		Progress: int(progress),
 	}
 
 	err = quizTpl.ExecuteTemplate(w, "content", quizPage)

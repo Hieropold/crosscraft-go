@@ -7,6 +7,11 @@
     <p>Отгадано слов: {{.Score}}, рекорд: {{.MaxScore}}</p>
     <p>Экспа: {{.Exp}} / {{.NextCap}}</p>
     <p>Уровень: {{.Lvl}}</p>
+    <div class="progress">
+        <div class="progress-bar" role="progressbar" aria-valuenow="{{.Progress}}" aria-valuemin="0" aria-valuemax="100" style="width: {{.Progress}}%;">
+            {{.Progress}}%
+        </div>
+    </div>
 </div>
 
 <div class="list-group">

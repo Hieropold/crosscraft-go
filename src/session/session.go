@@ -74,6 +74,14 @@ func (s Session) GetNextLevelCap() int {
 	return curlvl * curlvl * 10
 }
 
+func (s Session) GetPreviousLevelCap() int {
+	var prevlvl = s.raw.Values["lvl"].(int) - 1
+	if prevlvl < 0 {
+		prevlvl = 0
+	}
+	return prevlvl * prevlvl * 10
+}
+
 func (s Session) IncreaseScore() {
 	score := s.raw.Values["score"].(int)
 	max := s.raw.Values["max"].(int)
