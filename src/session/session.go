@@ -77,3 +77,15 @@ func (s Session) IncreaseScore() {
 func (s Session) ResetScore() {
 	s.raw.Values["score"] = 0
 }
+
+func SessionLoader(h func(http.ResponseWriter, *http.Request, Session)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s, err := Start(w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		h(w, r, s)
+	}
+}

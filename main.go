@@ -71,18 +71,6 @@ func logWrapper(h func(http.ResponseWriter, *http.Request)) func(http.ResponseWr
 	}
 }
 
-func sessionLoader(h func(http.ResponseWriter, *http.Request, session.Session)) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		s, err := session.Start(w, r)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		h(w, r, s)
-	}
-}
-
 func indexHandler(w http.ResponseWriter, r *http.Request, s session.Session) {
 	var err error
 
@@ -346,10 +334,10 @@ func main() {
 	dbCfg.Host = os.Getenv("CROSSCRAFT_DB_HOST")
 	fmt.Printf("DB connection string: %s\n", dbCfg.ConnString(true))
 
-	http.HandleFunc("/", logWrapper(sessionLoader(indexHandler)))
-	http.HandleFunc("/verify-human", logWrapper(sessionLoader(verifyHumanHandler)))
-	http.HandleFunc("/quiz", logWrapper(sessionLoader(quizHandler)))
-	http.HandleFunc("/quiz/answer", logWrapper(sessionLoader(answerHandler)))
+	http.HandleFunc("/", logWrapper(session.SessionLoader(indexHandler)))
+	http.HandleFunc("/verify-human", logWrapper(session.SessionLoader(verifyHumanHandler)))
+	http.HandleFunc("/quiz", logWrapper(session.SessionLoader(quizHandler)))
+	http.HandleFunc("/quiz/answer", logWrapper(session.SessionLoader(answerHandler)))
 	http.HandleFunc("/healthcheck", logWrapper(healthcheckHandler))
 
 	// Static assets
