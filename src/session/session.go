@@ -36,6 +36,14 @@ func Start(w http.ResponseWriter, r *http.Request) (Session, error) {
 		s.raw.Values["max"] = 0
 	}
 
+	if s.raw.Values["exp"] == nil {
+		s.raw.Values["exp"] = 0
+	}
+
+	if s.raw.Values["lvl"] == nil {
+		s.raw.Values["lvl"] = 1
+	}
+
 	sessionStore.Save(r, w, &s.raw)
 
 	return s, nil
@@ -57,8 +65,13 @@ func (s Session) Save(w http.ResponseWriter, r *http.Request) {
 	sessionStore.Save(r, w, &s.raw)
 }
 
-func (s Session) GetScore() (int, int) {
-	return s.raw.Values["score"].(int), s.raw.Values["max"].(int)
+func (s Session) GetScore() (int, int, int, int) {
+	return s.raw.Values["score"].(int), s.raw.Values["max"].(int), s.raw.Values["exp"].(int), s.raw.Values["lvl"].(int)
+}
+
+func (s Session) GetNextLevelCap() int {
+	var curlvl = s.raw.Values["lvl"].(int)
+	return curlvl * curlvl * 10
 }
 
 func (s Session) IncreaseScore() {
@@ -72,6 +85,17 @@ func (s Session) IncreaseScore() {
 
 	s.raw.Values["score"] = score
 	s.raw.Values["max"] = max
+
+	lvl := s.raw.Values["lvl"].(int)
+
+	exp := s.raw.Values["exp"].(int)
+	exp = exp + score
+
+	if exp >= s.GetNextLevelCap() {
+		s.raw.Values["lvl"] = lvl + 1
+	}
+
+	s.raw.Values["exp"] = exp
 }
 
 func (s Session) ResetScore() {

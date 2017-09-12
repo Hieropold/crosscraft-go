@@ -19,6 +19,9 @@ type QuizPage struct {
 	Word     word.Word
 	Score    int
 	MaxScore int
+	Exp int
+	Lvl int
+	NextCap int
 }
 
 type DBConfig struct {
@@ -111,7 +114,7 @@ func quizHandler(w http.ResponseWriter, r *http.Request, s session.Session) {
 	}
 
 	// Load current user score
-	score, max := s.GetScore()
+	score, max, exp, lvl := s.GetScore()
 
 	// Load random word
 	var randomWord word.Word
@@ -131,6 +134,9 @@ func quizHandler(w http.ResponseWriter, r *http.Request, s session.Session) {
 		Word:     randomWord,
 		Score:    score,
 		MaxScore: max,
+		Exp: exp,
+		Lvl: lvl,
+		NextCap: s.GetNextLevelCap(),
 	}
 
 	err = quizTpl.ExecuteTemplate(w, "content", quizPage)
