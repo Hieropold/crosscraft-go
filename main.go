@@ -58,7 +58,7 @@ var totalWords int
 var totalClues int
 var random *rand.Rand
 
-func checkAccess(s session.Session) (bool) {
+func checkAccess(s session.Session) bool {
 	return s.IsVerified()
 }
 

@@ -74,6 +74,6 @@ func (s Session) IncreaseScore() {
 	s.raw.Values["max"] = max
 }
 
-func (s Session) ResetScore()  {
+func (s Session) ResetScore() {
 	s.raw.Values["score"] = 0
 }
