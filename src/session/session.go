@@ -11,7 +11,7 @@ type Session struct {
 
 var sessionStore *sessions.CookieStore
 
-func Init() {
+func init() {
 	sessionStore = sessions.NewCookieStore([]byte("some-secret-asadfewf124r134e"))
 }
 

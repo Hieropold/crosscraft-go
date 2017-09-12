@@ -375,9 +375,6 @@ func main() {
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	fmt.Printf("Random generator is initialized\n")
 
-	session.Init()
-	fmt.Println("Sessions initialized")
-
 	fmt.Println("Crosscraft server is listening on port 8080")
 
 	http.ListenAndServe(":8080", context.ClearHandler(http.DefaultServeMux))
