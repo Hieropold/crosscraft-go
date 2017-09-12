@@ -19,9 +19,9 @@ type QuizPage struct {
 	Word     word.Word
 	Score    int
 	MaxScore int
-	Exp int
-	Lvl int
-	NextCap int
+	Exp      int
+	Lvl      int
+	NextCap  int
 	Progress int
 }
 
@@ -133,15 +133,15 @@ func quizHandler(w http.ResponseWriter, r *http.Request, s session.Session) {
 
 	next := s.GetNextLevelCap()
 	prev := s.GetPreviousLevelCap()
-	progress := (float64(exp - prev) / float64(next - prev)) * 100
+	progress := (float64(exp-prev) / float64(next-prev)) * 100
 
 	var quizPage QuizPage = QuizPage{
 		Word:     randomWord,
 		Score:    score,
 		MaxScore: max,
-		Exp: exp,
-		Lvl: lvl,
-		NextCap: next,
+		Exp:      exp,
+		Lvl:      lvl,
+		NextCap:  next,
 		Progress: int(progress),
 	}
 

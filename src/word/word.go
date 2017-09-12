@@ -2,8 +2,8 @@ package word
 
 import (
 	"database/sql"
-	"time"
 	"math/rand"
+	"time"
 )
 
 type Clue struct {
